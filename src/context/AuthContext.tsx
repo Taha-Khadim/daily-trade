@@ -10,6 +10,8 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,7 +103,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setProfile(null);
   };
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isSuperAdmin = profile?.role === 'super_admin';
+
+  const hasPermission = (permission: string): boolean => {
+    if (isSuperAdmin) return true;
+    if (!isAdmin) return false;
+    
+    // In a real implementation, you would check admin_permissions table
+    // For now, regular admins have most permissions
+    const restrictedPermissions = ['manage_users', 'system_settings'];
+    return !restrictedPermissions.includes(permission);
+  };
 
   return (
     <AuthContext.Provider value={{
@@ -111,6 +124,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       signInWithGoogle,
       signOut,
       isAdmin,
+      isSuperAdmin,
+      hasPermission,
     }}>
       {children}
     </AuthContext.Provider>

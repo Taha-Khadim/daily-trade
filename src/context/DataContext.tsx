@@ -1,20 +1,40 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-import { Client, Transaction, DashboardStats, DailyCommission, NotsRecord } from '../types';
+import { 
+  Client, 
+  Transaction, 
+  DashboardStats, 
+  DailyCommission, 
+  NotsRecord, 
+  ClientTarget,
+  PerformanceMetric,
+  AdminPermission,
+  ViewerPermission 
+} from '../types';
 
 interface DataContextType {
   clients: Client[];
   transactions: Transaction[];
   dailyCommissions: DailyCommission[];
   nots: NotsRecord[];
+  clientTargets: ClientTarget[];
+  performanceMetrics: PerformanceMetric[];
+  adminPermissions: AdminPermission[];
+  viewerPermissions: ViewerPermission[];
   dashboardStats: DashboardStats;
   loading: boolean;
-  addClient: (client: Omit<Client, 'id' | 'current_nots' | 'total_commission' | 'date_added' | 'last_activity' | 'created_by' | 'created_at' | 'updated_at'>) => Promise<void>;
+  addClient: (client: Omit<Client, 'id' | 'current_nots' | 'total_commission' | 'date_added' | 'last_activity' | 'created_by' | 'created_at' | 'updated_at'>) => Promise<Client>;
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'created_by' | 'created_at' | 'updated_at'>) => Promise<void>;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'transaction_date' | 'status' | 'processed_by' | 'created_by' | 'created_at' | 'updated_at'>) => Promise<Transaction>;
   deleteClient: (id: string) => Promise<void>;
-  addDailyCommission: (commission: Omit<DailyCommission, 'id' | 'created_by' | 'created_at'>) => Promise<void>;
+  addDailyCommission: (commission: Omit<DailyCommission, 'id' | 'created_by' | 'created_at'>) => Promise<DailyCommission>;
+  addClientTarget: (target: Omit<ClientTarget, 'id' | 'current_value' | 'achievement_percentage' | 'is_achieved' | 'created_by' | 'created_at' | 'updated_at'>) => Promise<ClientTarget>;
+  updateClientTarget: (id: string, updates: Partial<ClientTarget>) => Promise<void>;
+  calculateNotsForClient: (clientId: string) => Promise<number>;
+  addNotsRecord: (nots: Omit<NotsRecord, 'id' | 'created_by' | 'created_at'>) => Promise<NotsRecord>;
+  updateNotsRecord: (id: string, updates: Partial<NotsRecord>) => Promise<void>;
+  getClientPerformance: (clientId: string, period?: string) => Promise<any>;
   refreshData: () => Promise<void>;
 }
 
@@ -38,6 +58,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dailyCommissions, setDailyCommissions] = useState<DailyCommission[]>([]);
   const [nots, setNots] = useState<NotsRecord[]>([]);
+  const [clientTargets, setClientTargets] = useState<ClientTarget[]>([]);
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
+  const [adminPermissions, setAdminPermissions] = useState<AdminPermission[]>([]);
+  const [viewerPermissions, setViewerPermissions] = useState<ViewerPermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalClients: 0,
@@ -50,6 +74,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     averageEquityPerClient: 0,
     dailyCommissionSum: 0,
     totalTrades: 0,
+    targetAchievementRate: 0,
+    averageRiskLevel: 'medium',
+    monthlyGrowthRate: 0,
   });
 
   useEffect(() => {
@@ -60,7 +87,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   useEffect(() => {
     calculateDashboardStats();
-  }, [clients, transactions, dailyCommissions, nots]);
+  }, [clients, transactions, dailyCommissions, nots, clientTargets]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -70,6 +97,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         fetchTransactions(),
         fetchDailyCommissions(),
         fetchNots(),
+        fetchClientTargets(),
+        fetchPerformanceMetrics(),
+        fetchPermissions(),
       ]);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -134,6 +164,44 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     setNots(data || []);
   };
 
+  const fetchClientTargets = async () => {
+    const { data, error } = await supabase
+      .from('client_targets')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching client targets:', error);
+      return;
+    }
+
+    setClientTargets(data || []);
+  };
+
+  const fetchPerformanceMetrics = async () => {
+    const { data, error } = await supabase
+      .from('performance_metrics')
+      .select('*')
+      .order('metric_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching performance metrics:', error);
+      return;
+    }
+
+    setPerformanceMetrics(data || []);
+  };
+
+  const fetchPermissions = async () => {
+    // Fetch admin and viewer permissions if user has access
+    // This would be implemented based on user role
+    try {
+      // Implementation would go here
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+    }
+  };
+
   const calculateDashboardStats = () => {
     const totalClients = clients.length;
     const activeClients = clients.filter(c => c.status === 'active').length;
@@ -145,6 +213,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const averageEquityPerClient = totalClients > 0 ? totalEquity / totalClients : 0;
     const dailyCommissionSum = dailyCommissions.reduce((sum, dc) => sum + dc.commission_amount, 0);
     const totalTrades = dailyCommissions.reduce((sum, dc) => sum + dc.trade_count, 0);
+    const targetAchievementRate = targetNots > 0 ? (totalNots / targetNots) * 100 : 0;
+    
+    // Calculate average risk level
+    const riskLevels = clients.map(c => c.risk_level);
+    const averageRiskLevel = riskLevels.length > 0 ? 'medium' : 'medium'; // Simplified
+    const monthlyGrowthRate = 0; // Would calculate based on historical data
 
     setDashboardStats({
       totalClients,
@@ -157,15 +231,18 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       averageEquityPerClient,
       dailyCommissionSum,
       totalTrades,
+      targetAchievementRate,
+      averageRiskLevel,
+      monthlyGrowthRate,
     });
   };
 
-  const addClient = async (clientData: Omit<Client, 'id' | 'current_nots' | 'total_commission' | 'date_added' | 'last_activity' | 'created_by' | 'created_at' | 'updated_at'>) => {
+  const addClient = async (clientData: Omit<Client, 'id' | 'current_nots' | 'total_commission' | 'date_added' | 'last_activity' | 'created_by' | 'created_at' | 'updated_at'>): Promise<Client> => {
     const { data, error } = await supabase
       .from('clients_dtc')
       .insert([{
         ...clientData,
-        current_nots: Math.floor(clientData.daily_commission / 6000),
+        current_nots: 0, // Will be calculated based on actual commissions
         total_commission: clientData.daily_commission,
         created_by: user?.id,
       }])
@@ -178,6 +255,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     if (data) {
       setClients(prev => [data, ...prev]);
+      return data;
     }
   };
 
@@ -201,11 +279,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_by' | 'created_at' | 'updated_at'>) => {
+  const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'transaction_date' | 'status' | 'processed_by' | 'created_by' | 'created_at' | 'updated_at'>): Promise<Transaction> => {
     const { data, error } = await supabase
       .from('transactions_dtc')
       .insert([{
         ...transactionData,
+        status: 'completed',
+        processed_by: user?.id,
         created_by: user?.id,
       }])
       .select()
@@ -217,6 +297,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     if (data) {
       setTransactions(prev => [data, ...prev]);
+      return data;
 
       // Update client based on transaction type
       const client = clients.find(c => c.id === transactionData.client_id);
@@ -233,7 +314,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             break;
           case 'commission':
             updates.total_commission = client.total_commission + transactionData.amount;
-            updates.current_nots = Math.floor((client.total_commission + transactionData.amount) / 6000);
+            // Nots will be recalculated separately
             break;
         }
 
@@ -260,7 +341,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     setNots(prev => prev.filter(n => n.client_id !== id));
   };
 
-  const addDailyCommission = async (commissionData: Omit<DailyCommission, 'id' | 'created_by' | 'created_at'>) => {
+  const addDailyCommission = async (commissionData: Omit<DailyCommission, 'id' | 'created_by' | 'created_at'>): Promise<DailyCommission> => {
     const { data, error } = await supabase
       .from('daily_commission_dtc')
       .insert([{
@@ -276,6 +357,127 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     if (data) {
       setDailyCommissions(prev => [data, ...prev]);
+      
+      // Recalculate nots for the client
+      await calculateNotsForClient(commissionData.client_id);
+      
+      return data;
+    }
+  };
+
+  const addClientTarget = async (targetData: Omit<ClientTarget, 'id' | 'current_value' | 'achievement_percentage' | 'is_achieved' | 'created_by' | 'created_at' | 'updated_at'>): Promise<ClientTarget> => {
+    const { data, error } = await supabase
+      .from('client_targets')
+      .insert([{
+        ...targetData,
+        current_value: 0,
+        achievement_percentage: 0,
+        is_achieved: false,
+        created_by: user?.id,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setClientTargets(prev => [data, ...prev]);
+      return data;
+    }
+  };
+
+  const updateClientTarget = async (id: string, updates: Partial<ClientTarget>) => {
+    const { data, error } = await supabase
+      .from('client_targets')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setClientTargets(prev => prev.map(target => target.id === id ? data : target));
+    }
+  };
+
+  const calculateNotsForClient = async (clientId: string): Promise<number> => {
+    try {
+      const { data, error } = await supabase.rpc('calculate_client_nots', {
+        client_uuid: clientId
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Refresh client data
+      await fetchClients();
+      
+      return data || 0;
+    } catch (error) {
+      console.error('Error calculating nots:', error);
+      return 0;
+    }
+  };
+
+  const addNotsRecord = async (notsData: Omit<NotsRecord, 'id' | 'created_by' | 'created_at'>): Promise<NotsRecord> => {
+    const { data, error } = await supabase
+      .from('nots_dtc')
+      .insert([{
+        ...notsData,
+        created_by: user?.id,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setNots(prev => [data, ...prev]);
+      return data;
+    }
+  };
+
+  const updateNotsRecord = async (id: string, updates: Partial<NotsRecord>) => {
+    const { data, error } = await supabase
+      .from('nots_dtc')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setNots(prev => prev.map(nots => nots.id === id ? data : nots));
+    }
+  };
+
+  const getClientPerformance = async (clientId: string, period = 'monthly') => {
+    try {
+      const { data, error } = await supabase
+        .from('client_performance_view')
+        .select('*')
+        .eq('id', clientId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching client performance:', error);
+      return null;
     }
   };
 
@@ -289,6 +491,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       transactions,
       dailyCommissions,
       nots,
+      clientTargets,
+      performanceMetrics,
+      adminPermissions,
+      viewerPermissions,
       dashboardStats,
       loading,
       addClient,
@@ -296,6 +502,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       addTransaction,
       deleteClient,
       addDailyCommission,
+      addClientTarget,
+      updateClientTarget,
+      calculateNotsForClient,
+      addNotsRecord,
+      updateNotsRecord,
+      getClientPerformance,
       refreshData,
     }}>
       {children}
