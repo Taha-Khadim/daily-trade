@@ -19,13 +19,15 @@ const Clients: React.FC = () => {
   const { clients, deleteClient, loading } = useData();
   const { isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
+  const [riskFilter, setRiskFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesRisk = riskFilter === 'all' || client.risk_level === riskFilter;
+    return matchesSearch && matchesStatus && matchesRisk;
   });
 
   const handleDeleteClient = async (id: string) => {
@@ -84,6 +86,20 @@ const Clients: React.FC = () => {
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-400" />
+            <select
+              value={riskFilter}
+              onChange={(e) => setRiskFilter(e.target.value as any)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Risk Levels</option>
+              <option value="low">Low Risk</option>
+              <option value="medium">Medium Risk</option>
+              <option value="high">High Risk</option>
             </select>
           </div>
         </div>
@@ -106,9 +122,20 @@ const Clients: React.FC = () => {
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       client.status === 'active' 
                         ? 'bg-green-100 text-green-800' 
+                        : client.status === 'suspended'
+                        ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
                       {client.status}
+                    </span>
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ml-2 ${
+                      client.risk_level === 'low' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : client.risk_level === 'high'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {client.risk_level} risk
                     </span>
                   </div>
                 </div>

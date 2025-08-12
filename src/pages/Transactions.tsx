@@ -23,7 +23,7 @@ const Transactions: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     client_id: '',
-    type: 'commission' as 'withdrawal' | 'margin_addition' | 'equity_update' | 'commission' | 'deposit',
+    type: 'commission' as 'withdrawal' | 'margin_addition' | 'equity_update' | 'commission' | 'deposit' | 'fee' | 'bonus',
     amount: '',
     description: '',
     reference_number: '',
@@ -140,6 +140,8 @@ const Transactions: React.FC = () => {
               <option value="deposit">Deposit</option>
               <option value="equity_update">Equity Update</option>
             </select>
+            <option value="fee">Fee</option>
+            <option value="bonus">Bonus</option>
           </div>
         </div>
       </div>
@@ -263,6 +265,8 @@ const Transactions: React.FC = () => {
                     <option value="margin_addition">Margin Addition</option>
                     <option value="deposit">Deposit</option>
                     <option value="equity_update">Equity Update</option>
+                    <option value="fee">Fee</option>
+                    <option value="bonus">Bonus</option>
                   </select>
                 </div>
 

@@ -15,7 +15,10 @@ const AddClient: React.FC = () => {
     phone: '',
     total_equity: '',
     daily_commission: '',
-    status: 'active' as 'active' | 'inactive',
+    status: 'active' as 'active' | 'inactive' | 'suspended',
+    risk_level: 'medium' as 'low' | 'medium' | 'high',
+    account_type: 'individual' as 'individual' | 'corporate',
+    notes: '',
   });
 
   // Redirect if not admin
@@ -37,6 +40,9 @@ const AddClient: React.FC = () => {
         total_equity: parseFloat(formData.total_equity),
         daily_commission: parseFloat(formData.daily_commission),
         status: formData.status,
+        risk_level: formData.risk_level,
+        account_type: formData.account_type,
+        notes: formData.notes || null,
       });
       navigate('/clients');
     } catch (error) {
@@ -130,6 +136,40 @@ const AddClient: React.FC = () => {
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="risk_level" className="block text-sm font-medium text-gray-700 mb-2">
+                Risk Level
+              </label>
+              <select
+                id="risk_level"
+                name="risk_level"
+                value={formData.risk_level}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="low">Low Risk</option>
+                <option value="medium">Medium Risk</option>
+                <option value="high">High Risk</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="account_type" className="block text-sm font-medium text-gray-700 mb-2">
+                Account Type
+              </label>
+              <select
+                id="account_type"
+                name="account_type"
+                value={formData.account_type}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="individual">Individual</option>
+                <option value="corporate">Corporate</option>
               </select>
             </div>
 
@@ -168,6 +208,21 @@ const AddClient: React.FC = () => {
                 placeholder="Enter daily commission"
               />
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+              Notes
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Additional notes about the client"
+            />
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-6 border-t border-gray-200">

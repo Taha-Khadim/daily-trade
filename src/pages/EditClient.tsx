@@ -16,7 +16,10 @@ const EditClient: React.FC = () => {
     phone: '',
     total_equity: '',
     daily_commission: '',
-    status: 'active' as 'active' | 'inactive',
+    status: 'active' as 'active' | 'inactive' | 'suspended',
+    risk_level: 'medium' as 'low' | 'medium' | 'high',
+    account_type: 'individual' as 'individual' | 'corporate',
+    notes: '',
   });
 
   const client = clients.find(c => c.id === id);
@@ -39,6 +42,9 @@ const EditClient: React.FC = () => {
       total_equity: client.total_equity.toString(),
       daily_commission: client.daily_commission.toString(),
       status: client.status,
+      risk_level: client.risk_level,
+      account_type: client.account_type,
+      notes: client.notes || '',
     });
   }, [client, isAdmin, navigate]);
 
@@ -56,6 +62,9 @@ const EditClient: React.FC = () => {
         total_equity: parseFloat(formData.total_equity),
         daily_commission: parseFloat(formData.daily_commission),
         status: formData.status,
+        risk_level: formData.risk_level,
+        account_type: formData.account_type,
+        notes: formData.notes || null,
       });
       navigate('/clients');
     } catch (error) {
