@@ -22,6 +22,8 @@ const DailyCommission: React.FC = () => {
     client_id: '',
     commission_amount: '',
     trade_count: '',
+    volume_traded: '',
+    commission_rate: '',
     date: format(new Date(), 'yyyy-MM-dd'),
   });
 
@@ -42,12 +44,16 @@ const DailyCommission: React.FC = () => {
         ...newCommission,
         commission_amount: parseFloat(newCommission.commission_amount),
         trade_count: parseInt(newCommission.trade_count),
+        volume_traded: parseFloat(newCommission.volume_traded) || 0,
+        commission_rate: parseFloat(newCommission.commission_rate) || 0,
       });
       setShowAddModal(false);
       setNewCommission({
         client_id: '',
         commission_amount: '',
         trade_count: '',
+        volume_traded: '',
+        commission_rate: '',
         date: format(new Date(), 'yyyy-MM-dd'),
       });
     } catch (error) {
@@ -336,6 +342,36 @@ const DailyCommission: React.FC = () => {
                     min="0"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter number of trades"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Volume Traded (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    value={newCommission.volume_traded}
+                    onChange={(e) => setNewCommission(prev => ({ ...prev, volume_traded: e.target.value }))}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter volume traded"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Commission Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={newCommission.commission_rate}
+                    onChange={(e) => setNewCommission(prev => ({ ...prev, commission_rate: e.target.value }))}
+                    min="0"
+                    step="0.0001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter commission rate"
                   />
                 </div>
 

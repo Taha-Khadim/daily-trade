@@ -1,19 +1,33 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   Target,
   TrendingUp,
   User,
   Calendar,
   Award,
-  BarChart3
+  BarChart3,
+  Plus,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactECharts from 'echarts-for-react';
 
 const NotsTracking: React.FC = () => {
-  const { clients, nots, dashboardStats, loading } = useData();
+  const { clients, nots, dashboardStats, loading, addNotsRecord, updateNotsRecord, calculateNotsForClient } = useData();
+  const { isAdmin } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newNots, setNewNots] = useState({
+    client_id: '',
+    nots_achieved: '',
+    commission_for_nots: '',
+    bonus_amount: '',
+    period_start: format(new Date(), 'yyyy-MM-dd'),
+    period_end: format(new Date(), 'yyyy-MM-dd'),
+  });
 
   if (loading) {
     return (
@@ -211,10 +225,163 @@ const NotsTracking: React.FC = () => {
         </div>
       </div>
 
+      {/* Add Nots Record Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Nots Record</h3>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  await addNotsRecord({
+                    ...newNots,
+                    nots_achieved: parseInt(newNots.nots_achieved),
+                    commission_for_nots: parseFloat(newNots.commission_for_nots),
+                    bonus_amount: parseFloat(newNots.bonus_amount),
+                    achievement_date: new Date().toISOString().split('T')[0],
+                    is_verified: false,
+                    verified_by: null,
+                  });
+                  setShowAddModal(false);
+                  setNewNots({
+                    client_id: '',
+                    nots_achieved: '',
+                    commission_for_nots: '',
+                    bonus_amount: '',
+                    period_start: format(new Date(), 'yyyy-MM-dd'),
+                    period_end: format(new Date(), 'yyyy-MM-dd'),
+                  });
+                } catch (error) {
+                  console.error('Error adding nots record:', error);
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client
+                  </label>
+                  <select
+                    value={newNots.client_id}
+                    onChange={(e) => setNewNots(prev => ({ ...prev, client_id: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select a client</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>{client.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nots Achieved
+                  </label>
+                  <input
+                    type="number"
+                    value={newNots.nots_achieved}
+                    onChange={(e) => setNewNots(prev => ({ ...prev, nots_achieved: e.target.value }))}
+                    required
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter nots achieved"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Commission for Nots (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    value={newNots.commission_for_nots}
+                    onChange={(e) => setNewNots(prev => ({ ...prev, commission_for_nots: e.target.value }))}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter commission amount"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bonus Amount (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    value={newNots.bonus_amount}
+                    onChange={(e) => setNewNots(prev => ({ ...prev, bonus_amount: e.target.value }))}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter bonus amount (optional)"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Period Start
+                    </label>
+                    <input
+                      type="date"
+                      value={newNots.period_start}
+                      onChange={(e) => setNewNots(prev => ({ ...prev, period_start: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Period End
+                    </label>
+                    <input
+                      type="date"
+                      value={newNots.period_end}
+                      onChange={(e) => setNewNots(prev => ({ ...prev, period_end: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Add Nots Record
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Client Performance Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Client Performance</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Client Performance</h3>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Nots Record
+              </button>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -234,6 +401,9 @@ const NotsTracking: React.FC = () => {
                 </th>
                 <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -276,6 +446,17 @@ const NotsTracking: React.FC = () => {
                       }`}>
                         {client.current_nots >= 1 ? 'Achieved' : 'In Progress'}
                       </span>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                      {isAdmin && (
+                        <button
+                          onClick={() => calculateNotsForClient(clients.find(c => c.name === client.name)?.id || '')}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                        >
+                          <Target className="w-4 h-4" />
+                          Recalculate
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
