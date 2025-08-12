@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const Settings: React.FC = () => {
-  const { isAdmin, profile } = useAuth();
+  const { isAdmin, isSuperAdmin, profile } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [showApiKey, setShowApiKey] = useState(false);
   const [settings, setSettings] = useState({
@@ -36,7 +36,7 @@ const Settings: React.FC = () => {
     },
   });
 
-  if (!isAdmin) {
+  if (!isAdmin && !isSuperAdmin) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -52,8 +52,10 @@ const Settings: React.FC = () => {
     { id: 'profile', name: 'Profile', icon: User },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'preferences', name: 'Preferences', icon: Palette },
-    { id: 'security', name: 'Security', icon: Shield },
-    { id: 'database', name: 'Database', icon: Database },
+    ...(isSuperAdmin ? [
+      { id: 'security', name: 'Security', icon: Shield },
+      { id: 'database', name: 'Database', icon: Database },
+    ] : []),
   ];
 
   const handleSettingChange = (category: string, setting: string, value: any) => {
